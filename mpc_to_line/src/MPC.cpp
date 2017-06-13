@@ -26,8 +26,6 @@ double dt = ? ;
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
 
-double ref_cte = 0;
-double ref_epsi = 0;
 // NOTE: feel free to play around with this
 // or do something completely different
 double ref_v = 40;
@@ -80,12 +78,12 @@ class FG_eval {
     fg[1 + epsi_start] = vars[epsi_start];
 
     // The rest of the constraints
-    for (int i = 0; i < N - 1; i++) {
-      AD<double> x1 = vars[x_start + i + 1];
+    for (int t = 1; t < N; t++) {
+      AD<double> x1 = vars[x_start + t];
 
-      AD<double> x0 = vars[x_start + i];
-      AD<double> psi0 = vars[psi_start + i];
-      AD<double> v0 = vars[v_start + i];
+      AD<double> x0 = vars[x_start + t - 1];
+      AD<double> psi0 = vars[psi_start + t - 1];
+      AD<double> v0 = vars[v_start + t - 1];
 
       // Here's `x` to get you started.
       // The idea here is to constraint this value to be 0.
@@ -95,7 +93,7 @@ class FG_eval {
       // these to the solver.
 
       // TODO: Setup the rest of the model constraints
-      fg[2 + x_start + i] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
+      fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
     }
   }
 };
@@ -195,7 +193,6 @@ vector<double> MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
   options += "Integer print_level  0\n";
   options += "Sparse  true        forward\n";
   options += "Sparse  true        reverse\n";
-  options += "Numeric max_cpu_time          0.05\n";
 
   // place to return solution
   CppAD::ipopt::solve_result<Dvector> solution;
@@ -306,6 +303,15 @@ int main() {
     a_vals.push_back(vars[7]);
 
     state << vars[0], vars[1], vars[2], vars[3], vars[4], vars[5];
+    std::cout << "x = " << vars[0] << std::endl;
+    std::cout << "y = " << vars[1] << std::endl;
+    std::cout << "psi = " << vars[2] << std::endl;
+    std::cout << "v = " << vars[3] << std::endl;
+    std::cout << "cte = " << vars[4] << std::endl;
+    std::cout << "epsi = " << vars[5] << std::endl;
+    std::cout << "delta = " << vars[6] << std::endl;
+    std::cout << "a = " << vars[7] << std::endl;
+    std::cout << std::endl;
   }
 
   // Plot values
