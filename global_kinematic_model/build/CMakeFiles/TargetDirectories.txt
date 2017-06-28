@@ -1,0 +1,3 @@
+/mnt/c/Users/Sampath/Downloads/GitHub/CarND/CarND-MPC-Quizzes/global_kinematic_model/build/CMakeFiles/edit_cache.dir
+/mnt/c/Users/Sampath/Downloads/GitHub/CarND/CarND-MPC-Quizzes/global_kinematic_model/build/CMakeFiles/rebuild_cache.dir
+/mnt/c/Users/Sampath/Downloads/GitHub/CarND/CarND-MPC-Quizzes/global_kinematic_model/build/CMakeFiles/global_kinematic_model.dir
