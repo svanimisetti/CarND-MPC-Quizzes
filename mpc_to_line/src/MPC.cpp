@@ -11,8 +11,12 @@ namespace plt = matplotlibcpp;
 using CppAD::AD;
 
 // TODO: Set N and dt
-size_t N = ? ;
-double dt = ? ;
+size_t N = 25 ;
+double dt = 0.05 ;
+// additional hyperparameters to penalize agressive maneuvers
+double lambda_delta = 500;
+double lambda_a = 100;
+
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -60,6 +64,20 @@ class FG_eval {
     // TODO: Define the cost related the reference state and
     // any anything you think may be beneficial.
 
+    for (int t = 0; t < N; t++) {
+      fg[0] += CppAD::pow(vars[cte_start+t],2);
+      fg[0] += CppAD::pow(vars[epsi_start+t],2);
+      fg[0] += CppAD::pow(vars[v_start+t]-ref_v,2);
+      if(t<N-1) {
+        fg[0] += CppAD::pow(vars[delta_start+t],2);
+      }
+      if(t<N-2) {
+        // penalize sharp turns and acceleration/decelration events
+        fg[0] += lambda_delta*CppAD::pow(vars[delta_start+t+1]-vars[delta_start+t],2);
+        fg[0] += lambda_a*CppAD::pow(vars[a_start+t+1]-vars[a_start+t],2);
+      }
+    }
+
     //
     // Setup Constraints
     //
@@ -80,10 +98,24 @@ class FG_eval {
     // The rest of the constraints
     for (int t = 1; t < N; t++) {
       AD<double> x1 = vars[x_start + t];
+      AD<double> y1 = vars[y_start + t];
+      AD<double> psi1 = vars[psi_start + t];
+      AD<double> v1 = vars[v_start + t];
+      AD<double> cte1 = vars[cte_start + t];
+      AD<double> epsi1 = vars[epsi_start + t];
 
       AD<double> x0 = vars[x_start + t - 1];
+      AD<double> y0 = vars[y_start + t - 1];
       AD<double> psi0 = vars[psi_start + t - 1];
       AD<double> v0 = vars[v_start + t - 1];
+      AD<double> cte0 = vars[cte_start + t - 1];
+      AD<double> epsi0 = vars[epsi_start + t - 1];
+
+      AD<double> delta0 = vars[delta_start + t - 1];
+      AD<double> a0 = vars[a_start + t - 1];
+      
+      AD<double> f0 = coeffs[0] + coeffs[1] * x0;
+      AD<double> psides0 = CppAD::atan(coeffs[1]);
 
       // Here's `x` to get you started.
       // The idea here is to constraint this value to be 0.
@@ -94,6 +126,11 @@ class FG_eval {
 
       // TODO: Setup the rest of the model constraints
       fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
+      fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
+      fg[1 + psi_start + t] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
+      fg[1 + v_start + t] = v1 - (v0 + a0 * dt);
+      fg[1 + cte_start + t] = cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
+      fg[1 + epsi_start + t] = epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
     }
   }
 };
@@ -263,7 +300,7 @@ int main() {
   ptsy << -1, -1;
 
   // TODO: fit a polynomial to the above x and y coordinates
-  auto coeffs = ? ;
+  auto coeffs = polyfit(ptsx, ptsy, 1);
 
   // NOTE: free feel to play around with these
   double x = -1;
@@ -271,9 +308,9 @@ int main() {
   double psi = 0;
   double v = 10;
   // TODO: calculate the cross track error
-  double cte = ? ;
+  double cte = polyeval(coeffs, x) - y;
   // TODO: calculate the orientation error
-  double epsi = ? ;
+  double epsi = psi - atan(coeffs[1]);
 
   Eigen::VectorXd state(6);
   state << x, y, psi, v, cte, epsi;
@@ -317,6 +354,7 @@ int main() {
   // Plot values
   // NOTE: feel free to play around with this.
   // It's useful for debugging!
+  /*
   plt::subplot(3, 1, 1);
   plt::title("CTE");
   plt::plot(cte_vals);
@@ -328,4 +366,23 @@ int main() {
   plt::plot(v_vals);
 
   plt::show();
+  */
+  std::cout << "cte_vals: ";
+  for (auto i: cte_vals) {
+    std::cout << i << ' ';
+  }
+  std::cout << endl;
+  
+  std::cout << "delta_vals: ";
+  for (auto i: delta_vals) {
+    std::cout << i << ' ';
+  }
+  std::cout << endl;
+  
+  std::cout << "v_vals: ";
+  for (auto i: v_vals) {
+    std::cout << i << ' ';
+  }
+  std::cout << endl;
+
 }
